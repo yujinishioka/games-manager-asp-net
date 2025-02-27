@@ -1,4 +1,7 @@
-﻿@{
+﻿@using GamesManager.ViewModels;
+@model IEnumerable<GamesManager.ViewModels.GameViewModel>
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
@@ -15,12 +18,18 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <th scope="row">Elden Ring</th>
-                <td>FromSoftware</td>
-                <td>Souls-like | RPG</td>
-                <td>2022</td>
-            </tr>
+            @foreach (GameViewModel item in Model)
+            {
+                @if(item.Game != null && item.Company != null)
+                {
+                    <tr>
+                        <th scope="row">@item.Game.name</th>
+                        <td>@item.Company.name</td>
+                        <td>RPG</td>
+                        <td>@item.Game.year</td>
+                    </tr>
+                }
+            }
         </tbody>
     </table>
 </div>

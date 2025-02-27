@@ -1,37 +1,41 @@
 using System.Diagnostics;
-using GamesManager.Models;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
+using GamesManager.Models;
+using GamesManager.Repositories;
+using GamesManager.ViewModels;
 
 namespace GamesManager.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IGameRepository _gameRepository;
 
-        public static void Data() {
-            string connectionString = "postgresql://neondb_owner:npg_zRgeOqd0C7Vc@ep-dawn-unit-a5panjxz-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require";
-
-            using var conn = new NpgsqlConnection(connectionString);
-            try
-            {
-                conn.Open();
-                Console.WriteLine("Conexão bem-sucedida!");
-                Console.WriteLine(conn);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erro: {ex.Message}");
-            }
-        }
-
-        public HomeController(ILogger<HomeController> logger)
-        {
+        public HomeController(ILogger<HomeController> logger, IGameRepository gameRepository) {
             _logger = logger;
+            _gameRepository = gameRepository;
         }
 
         public IActionResult Index()
         {
+            try
+            {
+                var lista = new List<GameViewModel>();
+                var games = _gameRepository.GetAllGames();
+                foreach (var game in games)
+                {
+                    var gameViewModel = new GameViewModel();
+                    gameViewModel.Game = game;
+                    gameViewModel.Company = _gameRepository.GetCompanyById(game.company_id);
+                    lista.Add(gameViewModel);
+                }
+                return View(lista);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erro na busca de jogos - {ex.Message}");
+            }
+
             return View();
         }
 
