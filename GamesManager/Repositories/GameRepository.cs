@@ -25,8 +25,40 @@ namespace GamesManager.Repositories
         {
             using (var connection = _dbContext.CreateConnection())
             {
-                string sql = "SELECT id, name, company_id, year FROM game";
-                return connection.Query<GameModel>(sql).ToList();
+                string sql = @"
+                    SELECT
+                        g.id, g.name, g.company_id, g.year, g.status,
+                        ge.id, ge.name, ge.style
+                    FROM game g
+                    LEFT JOIN game_genre gg ON g.id = gg.id_game
+                    LEFT JOIN genre ge ON gg.id_genre = ge.id
+                ";
+
+                var gameDictionary = new Dictionary<int, GameModel>();
+
+                var games = connection.Query<GameModel, GenreModel, GameModel>(
+                    sql,
+                    (game, genre) =>
+                    {
+                        if (!gameDictionary.TryGetValue(game.id, out var existingGame))
+                        {
+                            existingGame = game;
+                            existingGame.genres = new List<GenreModel>();
+                            gameDictionary.Add(game.id, existingGame);
+                        }
+
+                        if (genre != null)
+                        {
+                            existingGame.genres.Add(genre);
+                        }
+
+                        return existingGame;
+                    },
+                    splitOn: "id, id")
+                .Distinct()
+                .ToList();
+
+                return games;
             }
         }
 
@@ -34,7 +66,7 @@ namespace GamesManager.Repositories
         {
             using (var connection = _dbContext.CreateConnection())
             {
-                string sql = "SELECT id, name, company_id, year FROM game WHERE id = @id";
+                string sql = "SELECT id, name, company_id, year, \"status\" FROM game WHERE id = @id";
                 return connection.QueryFirstOrDefault<GameModel>(sql, new { id });
             }
         }
@@ -43,7 +75,7 @@ namespace GamesManager.Repositories
         {
             using (var connection = _dbContext.CreateConnection())
             {
-                string sql = "INSERT INTO game (name, company_id, year) VALUES (@name, @company_id, @year)";
+                string sql = "INSERT INTO game (name, company_id, year, \"status\") VALUES (@name, @company_id, @year, @status)";
                 connection.Execute(sql, game);
             }
         }
@@ -52,7 +84,7 @@ namespace GamesManager.Repositories
         {
             using (var connection = _dbContext.CreateConnection())
             {
-                string sql = "UPDATE game SET name = @name, company_id = @company_id, year = @year WHERE id = @id";
+                string sql = "UPDATE game SET name = @name, company_id = @company_id, year = @year, \"status\" = @status WHERE id = @id";
                 connection.Execute(sql, game);
             }
         }
